@@ -4,6 +4,8 @@ library(ggplot2)
 library(DT)
 library("GGally")
 library(readr)
+library("caret")
+library(caTools)
 
 dir <- getwd()
 df <- read_csv(paste0(dir,"/FA _Group_data.csv"))
@@ -34,7 +36,24 @@ summary(log.model)
 
 #Compute the confusion matrix and the overall fraction of correct predictions
 
-predict(log.model,df.altmann$class,type="response") 
-plot(mtcars$wt, 1-mtcars$vs, pch = 16,  xlab = "Motor's wieght in 1000 lbs", main="Weight VS V-Engine", ylab= "V-Engine (Yes/No)") 
-lines(xweight, yweight,col="blue")
 
+# E using the validation set approach
+set.seed(100)
+split <- sample.split(df.altmann$class, SplitRatio = 0.5)
+train <- subset(df.altmann, split == TRUE)
+test <- subset(df.altmann,split ==FALSE)
+dim(train)
+dim(test)
+
+log.model.train <- glm(class~.,family=binomial,data=train)
+
+predict.log <- predict(log.model.train,newdata=test,type="response")
+
+#Probability of 0.5
+predicted_class <- as.factor(ifelse(predict.log >= 0.5, 
+                                      1, 0))
+#Mean Square Prediction Error
+
+confusionMatrix(predicted_class, as.factor(test$class))
+
+#F.- Using KNN with 1
