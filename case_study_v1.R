@@ -82,6 +82,8 @@ cm_k1 <- table(test$class, knn_1)
 #Error is 0.002
 (cm_k1[1,2]+cm_k1[2,1])/(cm_k1[1,1]+cm_k1[1,2]+cm_k1[2,2]+cm_k1[2,1])
 
+misClassk1 <- mean(knn_1  != test$class)
+paste('Accuracy =', 1-misClassk1)
 #G.- Using KNN with 1
 
 knn_10 <- knn(train = train,
@@ -92,7 +94,7 @@ knn_10 <- knn(train = train,
 
 cm_k10 <- table(test$class, knn_10)
 (cm_k10[1,2]+cm_k10[2,1])/(cm_k10[1,1]+cm_k10[1,2]+cm_k10[2,2]+cm_k10[2,1])
-
-
+misClassk10 <- mean(knn_10  != test$class)
+paste('Accuracy =', 1-misClassk10)
 
 
