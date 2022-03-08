@@ -6,6 +6,8 @@ library("GGally")
 library(readr)
 library("caret")
 library(caTools)
+library(e1071)
+library(class)
 
 dir <- getwd()
 df <- read_csv(paste0(dir,"/FA _Group_data.csv"))
@@ -68,5 +70,29 @@ predicted_class <- as.factor(ifelse(predict.log >= 0.5,
 confusionMatrix(predicted_class, as.factor(test$class))
 
 #F.- Using KNN with 1
+
+knn_1 <- knn(train = train,
+                      test = test,
+                      cl = train$class ,
+                      k = 1)
+
+
+cm_k1 <- table(test$class, knn_1)
+
+#Error is 0.002
+(cm_k1[1,2]+cm_k1[2,1])/(cm_k1[1,1]+cm_k1[1,2]+cm_k1[2,2]+cm_k1[2,1])
+
+#G.- Using KNN with 1
+
+knn_10 <- knn(train = train,
+             test = test,
+             cl = train$class ,
+             k = 10)
+
+
+cm_k10 <- table(test$class, knn_10)
+(cm_k10[1,2]+cm_k10[2,1])/(cm_k10[1,1]+cm_k10[1,2]+cm_k10[2,2]+cm_k10[2,1])
+
+
 
 
