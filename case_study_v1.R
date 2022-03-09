@@ -358,10 +358,11 @@ test.lasso <- subset(df.lasso,split.lasso ==FALSE)
 
 ## Predicting with lambda 1 on the training dataset
 
-lasso.l1 =glmnet(as.matrix(train.lasso[,-65]),as.matrix(train.lasso$class),alpha=1
-                 ,family=binomial, lambda=0.0005)
+lasso.l1 =glmnet(as.matrix(train.lasso[,-65]),as.matrix(train.lasso$class),
+                 alpha=1,family=binomial, lambda=0.0005)
 
-lasso.l1.pred=predict(lasso.l1 ,s=0.0005,newx=as.matrix(test.lasso[,-65]),type="response")
+lasso.l1.pred=predict(lasso.l1 ,s=0.0005,newx=as.matrix(test.lasso[,-65]),
+                      type="response")
 
 #MSE
 mean((lasso.l1.pred-test.lasso$class)^2)
@@ -374,10 +375,12 @@ confusionMatrix(lasso.l1.predict, as.factor(test.lasso$class))
 
 lasso.l1.coef=predict(lasso.l1 ,s=0.5, newx=as.matrix(test.lasso[,-65]),
                       type="coefficients")
-
+options(scipen=999)
 lasso.l1.coef[1:64]
-lasso.l1 <- as.data.frame(as.matrix(lasso.l1.coef))%>% filter(s1>0)
-lasso.l1
+lasso.l1 <- as.data.frame(as.matrix(lasso.l1.coef))%>% 
+                    filter(s1>0) 
+
+lasso.l1$s1 = round(lasso.l1$s1,2)
         
 # Arbitrary Lambda 2 - Higher
 
@@ -398,8 +401,8 @@ lasso.l2.coef=predict(lasso.l2 ,s=0.5, newx=as.matrix(test.lasso[,-65]),
                       type="coefficients")
 
 lasso.l2.coef[1:64]
-lasso.l2 <- as.data.frame(as.matrix(lasso.l2.coef))%>% filter(s1>0)
-lasso.l2
+lasso.l2 <- as.data.frame(as.matrix(lasso.l2.coef))%>% filter(s1>0) 
+lasso.l2$s1 = round(lasso.l2$s1,2)
 ## Poor Result
 
 
@@ -429,6 +432,11 @@ lasso.pred.coeff =predict(lasso.final,s=bestlam ,newx=as.matrix(test.lasso[,-65]
 lasso.pred.coeff[1:64]
 lasso.best <- as.data.frame(as.matrix(lasso.pred.coeff))%>% filter(s1>0)
 lasso.best
+lasso.best$s1 = round(lasso.best$s1,2)
+
+
+
+
 
 
 
