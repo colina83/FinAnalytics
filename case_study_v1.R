@@ -228,6 +228,9 @@ df_improved <- data.frame(df$`working capital / total assets           `,
                         df$`sales / receivables             `,
                       
                         df$class)
+# corelation
+cor(df_improved[,-19])
+
 
 # Delete all rows with NA values in any variables of the dataset for the improved logistic regression approach:
 df_improved <- na.omit(df_improved)
@@ -236,6 +239,96 @@ str(df_improved)
 # 5,061 observations are left.
 summary(df_improved)
 prop.table(table(df_improved$df.class))
+# We still have an unbalanced dataset regarding the classification variable for bankruptacy:
+# 99.0% solvent companies
+# 1.0% bankrupt companies
+# These are also the competing probabilities by random guess for classification models.
+
+####### Validation data approach
+# using the validation set approach: 50/50 training and test data.
+
+set.seed(3)
+training_index_2 <- createDataPartition(df_improved$df.class, p=0.50, list=FALSE)
+
+# select 50% of the data for validation
+validation_2 <- df_improved[-training_index_2,]
+validation_2x <- validation_2[,1:18]
+validation_2y <- validation_2[,19]
 
 
+# use the remaining 50% of data to training and testing the models
+training_2 <- df_improved[training_index_2,]
+
+log.model_3 <- glm(formula = df.class ~., data = training_2, family = binomial)
+summary(log.model_3)
+# Only  the predictor variable "sales/ total assets" is significantly different from 0 with a probability of more than 95%.
+
+# Predict with the validation dataset:
+log.probs_3 <- predict(log.model_3, newdata=validation_2, type = "response")
+
+# set probability threshold of 50% for bankrupt companies:
+log.pred_3 <- ifelse(log.probs_3>0.5,1,0)
+log.pred_3 <- as.factor(log.pred_3)
+confusionMatrix(log.pred_3, validation_2$df.class)
+
+accuracy_pred_0 <- 2499/(2499+26)
+accuracy_pred_0
+random_0 <- (2499+5)/nrow(validation_2)
+random_0
+accuracy_pred_1 <- 0/(0+5)
+accuracy_pred_1
+random_1 <- 26/nrow(validation_2)
+random_1
+# The accuracy according the confusion matrix seems to be pretty good with 0.97.
+# But the actual problem is that model predicts no correct company which is at risk of bankruptacy.
+# in cases where the algorithm is predicting "bankruptacy" it is doing worse than simply guessing: 0 vs. 0.01
+# in cases where the algorithm is predicting "no bankruptacy" it is as simply guessing: 0.9897 vs. 0.9897
+# The low Kappa value of -0.0033 stating that this is random guess.
+# This phenomena can be explained by the low bancruptcy rate in the unbalanced data set.
+
+
+
+
+############################ thwro this part out##############################
+
+log.model_3 <- glm(formula = df.class ~., data = training_2[ , !(names(training_2) %in% c("df..sales...total.assets.............",
+                                                                                          "df..retained.earnings...total.assets............",
+                                                                                          
+                                                                                          
+                                                                                          ))], family = binomial)
+summary(log.model_3)
+# Predict with the validation dataset:
+log.probs_3 <- predict(log.model_3, newdata=validation_2, type = "response")
+# set probability threshold of 50% for bankrupt companies:
+log.pred_3 <- ifelse(log.probs_3>0.5,1,0)
+log.pred_3 <- as.factor(log.pred_3)
+confusionMatrix(log.pred_3, validation_2$df.class)
+
+
+
+log.model_3 <- glm(formula = df.class ~., data = training_2[ , !(names(training_2) %in% c("df..sales...total.assets.............",
+                                                                                          "df..retained.earnings...total.assets............",
+                                                                                          "df..EBITDA...total.assets.............",
+                                                                                          "df..sales..n....sales..n.1.............",
+                                                                                          "df..profit.on.operating.activities...financial.expenses..........",
+                                                                                          "df..total.liabilities...total.assets............",
+                                                                                          "df..net.profit...total.assets............",
+                                                                                          "df..book.value.of.equity...total.liabilities..........",
+                                                                                          "df..net.profit...sales.............",
+                                                                                          "df..sales...inventory..............",
+                                                                                          "df...net.profit...depreciation....total.liabilities..........",
+                                                                                          "df..working.capital...total.assets............",
+                                                                                          "df..sales...receivables..............",
+                                                                                          "df..short.term.liabilities...total.assets............"
+                                                                                          ))], family = binomial)
+log.model_3 <- glm(formula = df.class ~ training_2$df..working.capital...total.assets............, data = training_2, family = binomial)
+
+summary(log.model_3)
+# Predict with the validation dataset:
+log.probs_3 <- predict(log.model_3, newdata=validation_2, type = "response")
+# set probability threshold of 50% for bankrupt companies:
+log.pred_3 <- ifelse(log.probs_3>0.5,1,0)
+log.pred_3 <- as.factor(log.pred_3)
+confusionMatrix(log.pred_3, validation_2$df.class)
+#######################################################################
 
