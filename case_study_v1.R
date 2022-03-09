@@ -51,6 +51,14 @@ df_altman <- na.omit(df_altman)
 df_altman$df.class <- as.factor(df_altman$df.class)
 str(df_altman)
 # 5,371 observations are left.
+summary(df_altman)
+prop.table(table(df_altman$df.class))
+# Despite the dataset has information of 5,371 companies,
+# the dataset itself is very unbalanced regarding the 2 binomial classes:
+# 97% solvent companies
+# 3% bankrupt companies
+# These are also the competiting probabilities by random guess for classification models.
+
 
 #######################################################################
 # Question 1: Descriptive Summary, Logistic regression, kNN algorithm
@@ -83,7 +91,7 @@ summary(log.model_1)
 ####
 #D Predict on the training dataset.
 #  Compute the confusion matrix and the overall fraction of correct predictions
-log.probs_1 = predict(log.model_1,type="response")
+log.probs_1 <- predict(log.model_1,type="response")
 
 log.pred.glm_1 <- as.factor(ifelse(log.probs_1 >= 0.5, 
                                             1, 0))
@@ -110,21 +118,21 @@ random_1
 set.seed(3)
 
 # create a list of 50% of the rows in the original dataset we can use for training
-validation_index <- createDataPartition(df_altman$df.class, p=0.50, list=FALSE)
+training_index <- createDataPartition(df_altman$df.class, p=0.50, list=FALSE)
 
 # select 50% of the data for validation
-validation <- df_altman[-validation_index,]
-validationx <- df_altman[,1:5]
-validationy <- df_altman[,6]
+validation <- df_altman[-training_index,]
+validationx <- validation[,1:5]
+validationy <- validation[,6]
 
 # use the remaining 50% of data to training and testing the models
-training <- df_altman[validation_index,]
+training <- df_altman[training_index,]
 
 log.model_2 <- glm(formula = df.class ~ ., data = training, family = binomial)
 summary(log.model_2)
 # Coefficient estimates for all predictors are negative (except of ratio "EBTITDA/Total assets").
 # Only  the predictor variables "working capital / total assets", "retained earnings / total assets",
-# "sales/total assets" have coefficients that are significantly different from 0 with a probability of more than 95%.
+# have coefficients that are significantly different from 0 with a probability of more than 95%.
 
 # Predict with the validation dataset:
 log.probs_2 <- predict(log.model_2, newdata=validation, type = "response")
@@ -141,36 +149,49 @@ confusionMatrix(log.pred_2, validation$df.class)
 control <- trainControl(method="cv", number=10)
 metric <- "Accuracy"
 
+# What is best k for highest prediction accuracy with training data?
 set.seed(7)
 fit.knn <- train(df.class~., data=training, method="knn", metric=metric, trControl=control)
 fit.knn
 plot(fit.knn)
+# Highest accuracy -based on training data- could be achieved with k=7.
 
-# Using KNN with 1
+#F Using KNN with 1:
 knn_1 <- knn(train = training,
                       test = validation,
                       cl = training$df.class ,
                       k = 1)
+confusionMatrix(knn_1, validationy)
+accuracy_pred_0 <- 2605/(2605+9)
+accuracy_pred_0
+random_0 <- (2605+0)/nrow(validation)
+random_0
+accuracy_pred_1 <- 71/(0+71)
+accuracy_pred_1
+random_1 <- (9+71)/nrow(validation)
+random_1
+# By setting k=1, accuracy on validation data is quite good with 99.66%.
+# Kappa is improved to 0.93 which indicates that we have almost no random guess.
+# We have a huge improvement in the prediction of bankruptacy compared to random guess: 1 vs. 0.03
+# Also the prediction of not-bankrupt is better than random guess: 0.997 vs. 0.97
 
-knn1
-confusionMatrix(knn1, validationy)
 
-#Error is 0.002
-(cm_k1[1,2]+cm_k1[2,1])/(cm_k1[1,1]+cm_k1[1,2]+cm_k1[2,2]+cm_k1[2,1])
-
-misClassk1 <- mean(knn_1  != test$class)
-paste('Accuracy =', 1-misClassk1)
-#G.- Using KNN with 1
-
-knn_10 <- knn(train = train,
-             test = test,
-             cl = train$class ,
+#G Using KNN with 10:
+knn_10 <- knn(train = training,
+             test = validation,
+             cl = training$df.class ,
              k = 10)
+confusionMatrix(knn_10, validationy)
+accuracy_pred_0 <- 2605/(2605+18)
+accuracy_pred_0
+random_0
+accuracy_pred_1 <- 62/(0+62)
+accuracy_pred_1
+random_1
+# By setting k=10, accuracy on validation data is quite the same than we had with k=1: 0.9933 vs. 0.9966
+# Kappa is worse with 0.8699 compared to knn=1, so we have a higher share of random guess classifications
+# The prediction of bankruptacy compared to random guess is still very good: 1 vs. 0.03
+# Also the prediction of not-bankrupt compared to random guess is still very good 0.993 vs. 0.97
 
-
-cm_k10 <- table(test$class, knn_10)
-(cm_k10[1,2]+cm_k10[2,1])/(cm_k10[1,1]+cm_k10[1,2]+cm_k10[2,2]+cm_k10[2,1])
-misClassk10 <- mean(knn_10  != test$class)
-paste('Accuracy =', 1-misClassk10)
 
 
