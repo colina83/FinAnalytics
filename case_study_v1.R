@@ -332,6 +332,7 @@ log.pred_3 <- as.factor(log.pred_3)
 confusionMatrix(log.pred_3, validation_2$df.class)
 #######################################################################
 
+### Question 2
 
 ## Part B
 library(glmnet)
@@ -342,33 +343,48 @@ df.lasso = na.omit(df)
 # Creates x (all variables) and y (only class)
 x <- df.lasso[,-1]
 y =  df.lasso$class
+# Summary of the variable class
+summary(as.factor(df.lasso$class))
+# Random 0 = 99.1 %
+3155/3185*100
+# Random 1 = 0.9%
+30/3185*100
 
-## Predicting with lambda 1 on the training dataset
-set.seed(100)
-split.lasso <- sample.split(df.lasso$class, SplitRatio = 0.5)
+# 80% training and 20% test
+set.seed(10)
+split.lasso <- sample.split(df.lasso$class, SplitRatio = 0.8)
 train.lasso <- subset(df.lasso, split.lasso == TRUE)
 test.lasso <- subset(df.lasso,split.lasso ==FALSE)
 
-## Create new model with the training dataset
-lasso.l1 =glmnet(as.matrix(train.lasso[,-1]),as.matrix(train.lasso$class),alpha=1
-                 ,family=binomial, lambda=0.5)
+## Predicting with lambda 1 on the training dataset
 
-lasso.l1.pred=predict(lasso.l1 ,s=0.5, newx=as.matrix(test.lasso[,-1]),type="response")
+lasso.l1 =glmnet(as.matrix(train.lasso[,-65]),as.matrix(train.lasso$class),alpha=1
+                 ,family=binomial, lambda=0.0005)
 
+lasso.l1.pred=predict(lasso.l1 ,s=0.0005,newx=as.matrix(test.lasso[,-65]),type="response")
+
+#MSE
 mean((lasso.l1.pred-test.lasso$class)^2)
 
+#PREDICTION with a threshold of 0.5
 lasso.l1.predict <- as.factor(ifelse(lasso.l1.pred >= 0.5, 
                                   1, 0))
 
 confusionMatrix(lasso.l1.predict, as.factor(test.lasso$class))
-##Clasifies incorrectly - Cannot be use
 
-# Arbitrary Lambda 2
+lasso.l1.coef=predict(lasso.l1 ,s=0.5, newx=as.matrix(test.lasso[,-65]),
+                      type="coefficients")
 
-lasso.l2 =glmnet(train.lasso[,-1],train.lasso$class,alpha=1, family = "binomial" ,
-                 lambda=2)
+lasso.l1.coef[1:64]
+lasso.l1 <- as.data.frame(as.matrix(lasso.l1.coef))%>% filter(s1>0)
+lasso.l1
+        
+# Arbitrary Lambda 2 - Higher
 
-lasso.l2.pred=predict(lasso.l2 ,s=2, newx=as.matrix(test.lasso[,-1]),
+lasso.l2 =glmnet(train.lasso[,-65],train.lasso$class,alpha=1, family = "binomial" ,
+                 lambda=100)
+
+lasso.l2.pred=predict(lasso.l2 ,s=100, newx=as.matrix(test.lasso[,-1]),
                       type="response")
 
 mean((lasso.l2.pred-test.lasso$class)^2)
@@ -378,29 +394,42 @@ lasso.l2.predict <- as.factor(ifelse(lasso.l2.pred >= 0.5,
 
 confusionMatrix(lasso.l2.predict, as.factor(test.lasso$class))
 
+lasso.l2.coef=predict(lasso.l2 ,s=0.5, newx=as.matrix(test.lasso[,-65]),
+                      type="coefficients")
+
+lasso.l2.coef[1:64]
+lasso.l2 <- as.data.frame(as.matrix(lasso.l2.coef))%>% filter(s1>0)
+lasso.l2
+## Poor Result
+
 
 ######### Using Cross-Validation
 
-set.seed(100)
-lasso.cv = cv.glmnet(as.matrix(train.lasso[,-1]),as.matrix(train.lasso$class),
+lasso.cv = cv.glmnet(as.matrix(train.lasso[,-65]),as.matrix(train.lasso$class),
                      alpha=1,family=binomial)
 plot(lasso.cv)
-bestlam =lasso.cv$lambda.min
 
-lasso.pred.cv =predict(lasso.cv,s=bestlam ,newx=as.matrix(test.lasso[,-1]),
+bestlam = lasso.cv$lambda.min
+
+lasso.final =glmnet(as.matrix(train.lasso[,-65]),as.matrix(train.lasso$class),
+                    alpha=1,family=binomial, lambda = bestlam)
+
+lasso.pred.cv =predict(lasso.final,s=bestlam ,newx=as.matrix(test.lasso[,-65]),
                        type="response")
+
 lasso.predict.cv <- as.factor(ifelse(lasso.pred.cv >= 0.5, 
                                   1, 0))
-as.matrix(coef(lasso.cv, lasso.cv$lambda.min))
 
 confusionMatrix(lasso.predict.cv, as.factor(test.lasso$class))
-CF <- as.matrix(coef(lasso.cv, lasso.cv$lambda.min))
-CF[CF!=0,]
 
-lasso.all =glmnet(x,y,alpha=1,lambda=grid)
-lasso.coef.all =predict(lasso.all,type="coefficients",s=bestlam)[1:64,]
-lasso.coef.all
-lasso.coef.all[lasso.coef.all!=0]
+#Analysing coefficients
+lasso.pred.coeff =predict(lasso.final,s=bestlam ,newx=as.matrix(test.lasso[,-65]),
+                       type="coefficients")
+
+lasso.pred.coeff[1:64]
+lasso.best <- as.data.frame(as.matrix(lasso.pred.coeff))%>% filter(s1>0)
+lasso.best
+
 
 
 
