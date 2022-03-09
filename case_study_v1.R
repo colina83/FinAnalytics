@@ -194,4 +194,48 @@ random_1
 # Also the prediction of not-bankrupt compared to random guess is still very good 0.993 vs. 0.97
 
 
+#######################################################################
+# Question 2: Optimization of logistic regression models
+#######################################################################
+
+####
+#A) Improve the prediction of the logistic regression by including additional variables.
+
+# The definition of the additional predictor variables was done under consideration of meaningfulness of the Corporate Finance cours.
+
+
+## 13 Additional variables:
+# for detailed explanation, see the table in the presentation:
+
+df_improved <- data.frame(df$`working capital / total assets           `, 
+                        df$`retained earnings / total assets           `, 
+                        df$`EBITDA / total assets            `,
+                        df$`book value of equity / total liabilities         `,
+                        df$`sales / total assets            `,
+                        
+                        df$`net profit / total assets           `,
+                        df$`total liabilities / total assets           `,
+                        df$`sales (n) / sales (n-1)           `,
+                        df$`net profit / sales            `,
+                        df$`(net profit + depreciation) / total liabilities         `,
+                        df$`profit on operating activities / financial expenses         `,
+                        df$`(current assets - inventory - receivables) / short-term liabilities       `,
+                        df$`short-term liabilities / total assets           `,
+                        df$`(sales - cost of products sold) / sales        `,
+                        df$`(current assets - inventory - short-term liabilities) / (sales - gross profit - depreciation)  `,
+                        df$`total costs /total sales            `,
+                        df$`sales / inventory             `,
+                        df$`sales / receivables             `,
+                      
+                        df$class)
+
+# Delete all rows with NA values in any variables of the dataset for the improved logistic regression approach:
+df_improved <- na.omit(df_improved)
+df_improved$df.class <- as.factor(df_improved$df.class)
+str(df_improved)
+# 5,061 observations are left.
+summary(df_improved)
+prop.table(table(df_improved$df.class))
+
+
 
