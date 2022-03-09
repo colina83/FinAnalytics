@@ -287,76 +287,35 @@ random_1
 # This phenomena can be explained by the low bancruptcy rate in the unbalanced data set.
 
 
+######################### Lass Approach for Logistic Modelling ########################################
+## Part 2B/C
 
-
-############################ thwro this part out##############################
-
-log.model_3 <- glm(formula = df.class ~., data = training_2[ , !(names(training_2) %in% c("df..sales...total.assets.............",
-                                                                                          "df..retained.earnings...total.assets............",
-                                                                                          
-                                                                                          
-                                                                                          ))], family = binomial)
-summary(log.model_3)
-# Predict with the validation dataset:
-log.probs_3 <- predict(log.model_3, newdata=validation_2, type = "response")
-# set probability threshold of 50% for bankrupt companies:
-log.pred_3 <- ifelse(log.probs_3>0.5,1,0)
-log.pred_3 <- as.factor(log.pred_3)
-confusionMatrix(log.pred_3, validation_2$df.class)
-
-
-
-log.model_3 <- glm(formula = df.class ~., data = training_2[ , !(names(training_2) %in% c("df..sales...total.assets.............",
-                                                                                          "df..retained.earnings...total.assets............",
-                                                                                          "df..EBITDA...total.assets.............",
-                                                                                          "df..sales..n....sales..n.1.............",
-                                                                                          "df..profit.on.operating.activities...financial.expenses..........",
-                                                                                          "df..total.liabilities...total.assets............",
-                                                                                          "df..net.profit...total.assets............",
-                                                                                          "df..book.value.of.equity...total.liabilities..........",
-                                                                                          "df..net.profit...sales.............",
-                                                                                          "df..sales...inventory..............",
-                                                                                          "df...net.profit...depreciation....total.liabilities..........",
-                                                                                          "df..working.capital...total.assets............",
-                                                                                          "df..sales...receivables..............",
-                                                                                          "df..short.term.liabilities...total.assets............"
-                                                                                          ))], family = binomial)
-log.model_3 <- glm(formula = df.class ~ training_2$df..working.capital...total.assets............, data = training_2, family = binomial)
-
-summary(log.model_3)
-# Predict with the validation dataset:
-log.probs_3 <- predict(log.model_3, newdata=validation_2, type = "response")
-# set probability threshold of 50% for bankrupt companies:
-log.pred_3 <- ifelse(log.probs_3>0.5,1,0)
-log.pred_3 <- as.factor(log.pred_3)
-confusionMatrix(log.pred_3, validation_2$df.class)
-#######################################################################
-
-### Question 2
-
-## Part B
 library(glmnet)
 
 # Creates the full dataset without NA
 df.lasso = na.omit(df)
+#3,185 observations left.
 
-# Creates x (all variables) and y (only class)
-x <- df.lasso[,-1]
-y =  df.lasso$class
 # Summary of the variable class
 summary(as.factor(df.lasso$class))
 # Random 0 = 99.1 %
 3155/3185*100
 # Random 1 = 0.9%
 30/3185*100
+# The cleaned dataset is still very unbalanced:
+# 99.1% solvent companies
+# 0.9% bankrupt companies
 
-# 80% training and 20% test
+
+# Creating 80% training and 20% test
 set.seed(10)
 split.lasso <- sample.split(df.lasso$class, SplitRatio = 0.8)
 train.lasso <- subset(df.lasso, split.lasso == TRUE)
 test.lasso <- subset(df.lasso,split.lasso ==FALSE)
 
-## Predicting with lambda 1 on the training dataset
+## 2B) use two arbitrary lambdas to investigate the behavior of your model:
+
+#### Predicting with very small lambda = 0.0005 on the training dataset
 
 lasso.l1 =glmnet(as.matrix(train.lasso[,-65]),as.matrix(train.lasso$class),
                  alpha=1,family=binomial, lambda=0.0005)
@@ -375,14 +334,16 @@ confusionMatrix(lasso.l1.predict, as.factor(test.lasso$class))
 
 lasso.l1.coef=predict(lasso.l1 ,s=0.5, newx=as.matrix(test.lasso[,-65]),
                       type="coefficients")
-options(scipen=999)
+
 lasso.l1.coef[1:64]
 lasso.l1 <- as.data.frame(as.matrix(lasso.l1.coef))%>% 
-                    filter(s1>0) 
+                    filter(s1!=0) 
 
-lasso.l1$s1 = round(lasso.l1$s1,2)
+lasso.l1$s1 = round(lasso.l1$s1,4)
+View(lasso.l1)
+
         
-# Arbitrary Lambda 2 - Higher
+### Predicting with high lambda = 100 on the training dataset
 
 lasso.l2 =glmnet(train.lasso[,-65],train.lasso$class,alpha=1, family = "binomial" ,
                  lambda=100)
@@ -390,29 +351,36 @@ lasso.l2 =glmnet(train.lasso[,-65],train.lasso$class,alpha=1, family = "binomial
 lasso.l2.pred=predict(lasso.l2 ,s=100, newx=as.matrix(test.lasso[,-1]),
                       type="response")
 
+# MSE:
 mean((lasso.l2.pred-test.lasso$class)^2)
+
 
 lasso.l2.predict <- as.factor(ifelse(lasso.l2.pred >= 0.5, 
                                      1, 0))
 
 confusionMatrix(lasso.l2.predict, as.factor(test.lasso$class))
 
+# Coefficients
 lasso.l2.coef=predict(lasso.l2 ,s=0.5, newx=as.matrix(test.lasso[,-65]),
                       type="coefficients")
 
 lasso.l2.coef[1:64]
-lasso.l2 <- as.data.frame(as.matrix(lasso.l2.coef))%>% filter(s1>0) 
+lasso.l2 <- as.data.frame(as.matrix(lasso.l2.coef))%>% filter(s1!=0) 
 lasso.l2$s1 = round(lasso.l2$s1,2)
-## Poor Result
+## Poor Result: If the lambda is too big, it is attempting to minimize the coefficients to 0.
 
-
-######### Using Cross-Validation
+## 2C) Second, tune the optimal lambda parameter.
+######### Using Cross-Validation to find optimal lambda
 
 lasso.cv = cv.glmnet(as.matrix(train.lasso[,-65]),as.matrix(train.lasso$class),
                      alpha=1,family=binomial)
+par(mfrow=c(1,1))
 plot(lasso.cv)
 
+# We assign the minimum lambda value from cross-validation as best lambda value for the model:
 bestlam = lasso.cv$lambda.min
+bestlam
+# Minimal lambda is 0.0005346847.
 
 lasso.final =glmnet(as.matrix(train.lasso[,-65]),as.matrix(train.lasso$class),
                     alpha=1,family=binomial, lambda = bestlam)
@@ -420,27 +388,21 @@ lasso.final =glmnet(as.matrix(train.lasso[,-65]),as.matrix(train.lasso$class),
 lasso.pred.cv =predict(lasso.final,s=bestlam ,newx=as.matrix(test.lasso[,-65]),
                        type="response")
 
+# Set the threshold of 0.5
 lasso.predict.cv <- as.factor(ifelse(lasso.pred.cv >= 0.5, 
                                   1, 0))
 
 confusionMatrix(lasso.predict.cv, as.factor(test.lasso$class))
+# Kapa is still around 0.
+# Accuracy is still high by 0.986, but the prediction for bankruptacy (01) is still very poor and not better than random guess.
 
 #Analysing coefficients
 lasso.pred.coeff =predict(lasso.final,s=bestlam ,newx=as.matrix(test.lasso[,-65]),
                        type="coefficients")
 
 lasso.pred.coeff[1:64]
-lasso.best <- as.data.frame(as.matrix(lasso.pred.coeff))%>% filter(s1>0)
+lasso.best <- as.data.frame(as.matrix(lasso.pred.coeff))%>% filter(s1 !=0)
 lasso.best
-lasso.best$s1 = round(lasso.best$s1,2)
-
-
-
-
-
-
-
-
-
-
+lasso.best$s1 = round(lasso.best$s1,6)
+View(lasso.best)
 
