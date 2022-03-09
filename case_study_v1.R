@@ -332,3 +332,78 @@ log.pred_3 <- as.factor(log.pred_3)
 confusionMatrix(log.pred_3, validation_2$df.class)
 #######################################################################
 
+
+## Part B
+library(glmnet)
+
+# Creates the full dataset without NA
+df.lasso = na.omit(df)
+
+# Creates x (all variables) and y (only class)
+x <- df.lasso[,-1]
+y =  df.lasso$class
+
+## Predicting with lambda 1 on the training dataset
+set.seed(100)
+split.lasso <- sample.split(df.lasso$class, SplitRatio = 0.5)
+train.lasso <- subset(df.lasso, split.lasso == TRUE)
+test.lasso <- subset(df.lasso,split.lasso ==FALSE)
+
+## Create new model with the training dataset
+lasso.l1 =glmnet(as.matrix(train.lasso[,-1]),as.matrix(train.lasso$class),alpha=1
+                 ,family=binomial, lambda=0.5)
+
+lasso.l1.pred=predict(lasso.l1 ,s=0.5, newx=as.matrix(test.lasso[,-1]),type="response")
+
+mean((lasso.l1.pred-test.lasso$class)^2)
+
+lasso.l1.predict <- as.factor(ifelse(lasso.l1.pred >= 0.5, 
+                                  1, 0))
+
+confusionMatrix(lasso.l1.predict, as.factor(test.lasso$class))
+##Clasifies incorrectly - Cannot be use
+
+# Arbitrary Lambda 2
+
+lasso.l2 =glmnet(train.lasso[,-1],train.lasso$class,alpha=1, family = "binomial" ,
+                 lambda=2)
+
+lasso.l2.pred=predict(lasso.l2 ,s=2, newx=as.matrix(test.lasso[,-1]),
+                      type="response")
+
+mean((lasso.l2.pred-test.lasso$class)^2)
+
+lasso.l2.predict <- as.factor(ifelse(lasso.l2.pred >= 0.5, 
+                                     1, 0))
+
+confusionMatrix(lasso.l2.predict, as.factor(test.lasso$class))
+
+
+######### Using Cross-Validation
+
+set.seed(100)
+lasso.cv = cv.glmnet(as.matrix(train.lasso[,-1]),as.matrix(train.lasso$class),
+                     alpha=1,family=binomial)
+plot(lasso.cv)
+bestlam =lasso.cv$lambda.min
+
+lasso.pred.cv =predict(lasso.cv,s=bestlam ,newx=as.matrix(test.lasso[,-1]),
+                       type="response")
+lasso.predict.cv <- as.factor(ifelse(lasso.pred.cv >= 0.5, 
+                                  1, 0))
+as.matrix(coef(lasso.cv, lasso.cv$lambda.min))
+
+confusionMatrix(lasso.predict.cv, as.factor(test.lasso$class))
+CF <- as.matrix(coef(lasso.cv, lasso.cv$lambda.min))
+CF[CF!=0,]
+
+lasso.all =glmnet(x,y,alpha=1,lambda=grid)
+lasso.coef.all =predict(lasso.all,type="coefficients",s=bestlam)[1:64,]
+lasso.coef.all
+lasso.coef.all[lasso.coef.all!=0]
+
+
+
+
+
+
